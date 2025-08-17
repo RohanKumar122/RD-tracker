@@ -14,7 +14,7 @@ import {
   LogOut,
   User,
   Mail,
-  DollarSign,
+  IndianRupee ,
   Search,
   AlertCircle
 } from 'lucide-react';
@@ -698,7 +698,7 @@ const HomeSection = ({ stats, people, makeCall, togglePaymentStatus }) => {
               <p className="text-gray-400 text-xs lg:text-sm">Collection Rate</p>
               <p className="text-xl lg:text-2xl font-bold text-purple-500">{stats.collectionRate || 0}%</p>
             </div>
-            <DollarSign className="w-6 h-6 lg:w-8 lg:h-8 text-purple-500" />
+            <IndianRupee className="w-6 h-6 lg:w-8 lg:h-8 text-purple-500" />
           </div>
         </div>
       </div>
