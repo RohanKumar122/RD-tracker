@@ -16,8 +16,8 @@
     "mongodb",
     "express"
   ],
-  "author": "Your Name",
-  "license": "MIT",
+  "author": "Rohan Kumar",
+  "license": "NULL",
   "dependencies": {
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
