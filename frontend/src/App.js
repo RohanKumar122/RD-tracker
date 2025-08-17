@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { 
   Users, 
@@ -21,26 +20,64 @@ import {
 } from 'lucide-react';
 
 // API Configuration
-const API_BASE_URL = process.env.REACT_APP_BACKEND_URL || "http://localhost:5000/api";
+const API_BASE_URL = 'http://localhost:5000/api';
 
 // API Service
 const api = {
-  // Set auth token
+  // Set auth token with expiration (45 days for mobile)
   setAuthToken: (token) => {
     if (token) {
-      // Using sessionStorage instead of localStorage for demo
-      sessionStorage.setItem('authToken', token);
+      const expirationTime = Date.now() + (45 * 24 * 60 * 60 * 1000); // 45 days in milliseconds
+      const authData = {
+        token: token,
+        expiresAt: expirationTime
+      };
+      
+      // Check if it's a mobile device
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      
+      if (isMobile) {
+        // Use localStorage for mobile devices to persist for 45 days
+        localStorage.setItem('authData', JSON.stringify(authData));
+      } else {
+        // Use sessionStorage for desktop (session-based)
+        sessionStorage.setItem('authData', JSON.stringify(authData));
+      }
     } else {
-      sessionStorage.removeItem('authToken');
+      localStorage.removeItem('authData');
+      sessionStorage.removeItem('authData');
     }
   },
 
-  // Get auth token
-  getAuthToken: () => sessionStorage.getItem('authToken'),
+  // Get auth token and check expiration
+  getAuthToken: () => {
+    let authDataStr = localStorage.getItem('authData') || sessionStorage.getItem('authData');
+    
+    if (!authDataStr) return null;
+    
+    try {
+      const authData = JSON.parse(authDataStr);
+      
+      // Check if token has expired
+      if (Date.now() > authData.expiresAt) {
+        // Token expired, remove it
+        localStorage.removeItem('authData');
+        sessionStorage.removeItem('authData');
+        return null;
+      }
+      
+      return authData.token;
+    } catch (error) {
+      // Invalid auth data, remove it
+      localStorage.removeItem('authData');
+      sessionStorage.removeItem('authData');
+      return null;
+    }
+  },
 
   // API call helper
   request: async (endpoint, options = {}) => {
-    const token = sessionStorage.getItem('authToken');
+    const token = api.getAuthToken(); // Use the updated getAuthToken method
     const config = {
       headers: {
         'Content-Type': 'application/json',
