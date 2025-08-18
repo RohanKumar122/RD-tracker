@@ -18,11 +18,11 @@ import {
 } from 'lucide-react';
 
 // // API Configuration TESTING
-// const API_BASE_URL_DEV = process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000';
-// const API_BASE_URL= API_BASE_URL_DEV+ '/api';
+const API_BASE_URL_DEV = process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000';
+const API_BASE_URL= API_BASE_URL_DEV+ '/api';
 
 // production URL
-const API_BASE_URL  = process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000';
+// const API_BASE_URL  = process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000';
 
 // API Service
 const api = {
