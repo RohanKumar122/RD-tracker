@@ -1,28 +1,26 @@
 import React, { useState, useEffect } from 'react';
-// import PersonCard from './components/PersonCard';
-import PeopleSection from './components/PeopleSection';
-// import PersonForm from './components/PersonForm';
-import MonthlySection from './components/MonthlySection';
-import HomeSection from './components/HomeSection';
-import SettingsSection from './components/SettingsSection';
 import { 
   Users, 
   Home, 
   Calendar, 
   Settings, 
+  Phone, 
+  Edit, 
+  Trash2, 
+  Info, 
+  Plus, 
+  Check, 
   X,
   LogOut,
   User,
   Mail,
+  IndianRupee ,
+  Search,
   AlertCircle
 } from 'lucide-react';
 
-// // API Configuration TESTING
-// const API_BASE_URL_DEV = process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000';
-// const API_BASE_URL= API_BASE_URL_DEV+ '/api';
-
-// production URL
-const API_BASE_URL  = process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000';
+// API Configuration
+const API_BASE_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000';
 
 // API Service
 const api = {
@@ -654,5 +652,547 @@ const RDTrackerApp = () => {
   );
 };
 
+// Home Section Component
+const HomeSection = ({ stats, people, makeCall, togglePaymentStatus }) => {
+  const pendingPeople = people.filter(p => p.status === 'pending').slice(0, 5);
+
+  return (
+    <div className="space-y-6">
+      <h2 className="text-2xl lg:text-3xl font-bold text-white mb-6">Dashboard</h2>
+      
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+        <div className="bg-gray-800 rounded-xl p-4 lg:p-6 border border-gray-700">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-400 text-xs lg:text-sm">Total People</p>
+              <p className="text-xl lg:text-2xl font-bold text-white">{stats.totalPeople || 0}</p>
+            </div>
+            <Users className="w-6 h-6 lg:w-8 lg:h-8 text-blue-500" />
+          </div>
+        </div>
+
+        <div className="bg-gray-800 rounded-xl p-4 lg:p-6 border border-gray-700">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-400 text-xs lg:text-sm">Paid This Month</p>
+              <p className="text-xl lg:text-2xl font-bold text-green-500">{stats.paidCount || 0}</p>
+            </div>
+            <Check className="w-6 h-6 lg:w-8 lg:h-8 text-green-500" />
+          </div>
+        </div>
+
+        <div className="bg-gray-800 rounded-xl p-4 lg:p-6 border border-gray-700">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-400 text-xs lg:text-sm">Pending</p>
+              <p className="text-xl lg:text-2xl font-bold text-red-500">{stats.pendingCount || 0}</p>
+            </div>
+            <X className="w-6 h-6 lg:w-8 lg:h-8 text-red-500" />
+          </div>
+        </div>
+
+        <div className="bg-gray-800 rounded-xl p-4 lg:p-6 border border-gray-700">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-400 text-xs lg:text-sm">Collection Rate</p>
+              <p className="text-xl lg:text-2xl font-bold text-purple-500">{stats.collectionRate || 0}%</p>
+            </div>
+            <IndianRupee className="w-6 h-6 lg:w-8 lg:h-8 text-purple-500" />
+          </div>
+        </div>
+      </div>
+
+      {/* Amount Overview */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6">
+        <div className="bg-gray-800 rounded-xl p-4 lg:p-6 border border-gray-700">
+          <h3 className="text-base lg:text-lg font-semibold text-white mb-2">Total Expected</h3>
+          <p className="text-xl lg:text-2xl font-bold text-blue-400">₹{stats.totalAmount || 0}</p>
+        </div>
+        
+        <div className="bg-gray-800 rounded-xl p-4 lg:p-6 border border-gray-700">
+          <h3 className="text-base lg:text-lg font-semibold text-white mb-2">Collected</h3>
+          <p className="text-xl lg:text-2xl font-bold text-green-400">₹{stats.collectedAmount || 0}</p>
+        </div>
+        
+        <div className="bg-gray-800 rounded-xl p-4 lg:p-6 border border-gray-700">
+          <h3 className="text-base lg:text-lg font-semibold text-white mb-2">Pending</h3>
+          <p className="text-xl lg:text-2xl font-bold text-red-400">₹{stats.pendingAmount || 0}</p>
+        </div>
+      </div>
+
+      {/* Quick Actions */}
+      {pendingPeople.length > 0 && (
+        <div className="bg-gray-800 rounded-xl p-4 lg:p-6 border border-gray-700">
+          <h3 className="text-lg lg:text-xl font-semibold text-white mb-4">Quick Call Actions - Pending Payments</h3>
+          <div className="space-y-3">
+            {pendingPeople.map(person => (
+              <div key={person._id} className="flex items-center justify-between p-3 bg-gray-700 rounded-lg">
+                <div>
+                  <p className="text-white font-medium text-sm lg:text-base">{person.name}</p>
+                  <p className="text-gray-400 text-xs lg:text-sm">₹{person.amount} pending</p>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => makeCall(person.phone)}
+                    className="bg-green-600 hover:bg-green-700 text-white p-2 rounded-lg transition-colors"
+                  >
+                    <Phone className="w-4 h-4 lg:w-5 lg:h-5" />
+                  </button>
+                  <button
+                    onClick={() => togglePaymentStatus(person._id)}
+                    className="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-lg transition-colors"
+                  >
+                    <Check className="w-4 h-4 lg:w-5 lg:h-5" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Overdue Alert */}
+      {stats.isAfter15th && stats.overdueCount > 0 && (
+        <div className="bg-red-900 border border-red-700 rounded-xl p-4 lg:p-6">
+          <div className="flex items-center space-x-3">
+            <AlertCircle className="w-5 h-5 lg:w-6 lg:h-6 text-red-400 flex-shrink-0" />
+            <div>
+              <h3 className="text-base lg:text-lg font-semibold text-red-200">Overdue Payments Alert</h3>
+              <p className="text-red-300 text-sm lg:text-base">
+                {stats.overdueCount} people have overdue payments (after 15th of the month)
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+// People Section Component  
+const PeopleSection = ({ 
+  people, 
+  searchTerm, 
+  setSearchTerm, 
+  showAddForm, 
+  setShowAddForm,
+  editingPerson,
+  setEditingPerson,
+  handleAddPerson,
+  handleUpdatePerson,
+  handleDeletePerson,
+  makeCall,
+  togglePaymentStatus,
+  loading
+}) => {
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-3xl font-bold text-white">People Management</h2>
+        <button
+          onClick={() => setShowAddForm(true)}
+          disabled={loading}
+          className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 disabled:opacity-50"
+        >
+          <Plus className="w-5 h-5" />
+          <span>Add Person</span>
+        </button>
+      </div>
+
+      {/* Search */}
+      <div className="relative">
+        <Search className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+        <input
+          type="text"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          placeholder="Search people..."
+          className="w-full pl-10 pr-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500"
+        />
+      </div>
+
+      {/* People List */}
+      <div className="grid gap-4">
+        {people.length === 0 ? (
+          <div className="text-center py-8">
+            <Users className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+            <p className="text-gray-400 text-lg">No people found</p>
+            <p className="text-gray-500">Add some people to start tracking RD payments</p>
+          </div>
+        ) : (
+          people.map(person => (
+            <PersonCard
+              key={person._id}
+              person={person}
+              onCall={() => makeCall(person.phone)}
+              onEdit={() => setEditingPerson(person)}
+              onDelete={() => handleDeletePerson(person._id)}
+              onToggleStatus={() => togglePaymentStatus(person._id)}
+            />
+          ))
+        )}
+      </div>
+
+      {/* Add/Edit Form Modal */}
+      {(showAddForm || editingPerson) && (
+        <PersonForm
+          person={editingPerson}
+          onSave={editingPerson ? handleUpdatePerson : handleAddPerson}
+          onCancel={() => {
+            setShowAddForm(false);
+            setEditingPerson(null);
+          }}
+        />
+      )}
+    </div>
+  );
+};
+
+// Person Card Component
+const PersonCard = ({ person, onCall, onEdit, onDelete, onToggleStatus }) => {
+  const formatDate = (date) => {
+    if (!date) return 'Never';
+    return new Date(date).toLocaleDateString();
+  };
+
+  return (
+    <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+      <div className="flex items-center justify-between">
+        <div className="flex-1">
+          <div className="flex items-center space-x-3">
+            <h3 className="text-xl font-semibold text-white">{person.name}</h3>
+            <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+              person.status === 'paid' ? 'bg-green-600 text-white' : 
+              person.status === 'partial' ? 'bg-yellow-600 text-white' : 
+              'bg-red-600 text-white'
+            }`}>
+              {person.status === 'paid' ? 'Paid' : person.status === 'partial' ? 'Partial' : 'Pending'}
+            </span>
+          </div>
+          <p className="text-gray-400">{person.email}</p>
+          <p className="text-gray-400">{person.phone}</p>
+          <p className="text-purple-400 font-semibold">₹{person.amount}</p>
+          <p className="text-gray-500 text-sm">Last Payment: {formatDate(person.lastPayment)}</p>
+          <p className="text-gray-500 text-sm">Total Contributed: ₹{person.totalContributed || 0}</p>
+        </div>
+        
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={onCall}
+            className="bg-green-600 hover:bg-green-700 text-white p-2 rounded-lg transition-colors"
+            title="Call"
+          >
+            <Phone className="w-5 h-5" />
+          </button>
+          
+          <button
+            onClick={onEdit}
+            className="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-lg transition-colors"
+            title="Edit"
+          >
+            <Edit className="w-5 h-5" />
+          </button>
+          
+          <button
+            onClick={onToggleStatus}
+            className={`p-2 rounded-lg transition-colors ${
+              person.status === 'paid' ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'
+            } text-white`}
+            title={person.status === 'paid' ? 'Mark as Pending' : 'Mark as Paid'}
+          >
+            {person.status === 'paid' ? <X className="w-5 h-5" /> : <Check className="w-5 h-5" />}
+          </button>
+          
+          <button
+            onClick={onDelete}
+            className="bg-red-600 hover:bg-red-700 text-white p-2 rounded-lg transition-colors"
+            title="Delete"
+          >
+            <Trash2 className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Person Form Component
+const PersonForm = ({ person, onSave, onCancel }) => {
+  const [formData, setFormData] = useState({
+    name: person?.name || '',
+    email: person?.email || '',
+    phone: person?.phone || '',
+    amount: person?.amount || '',
+    notes: person?.notes || ''
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+
+    try {
+      const dataToSave = {
+        ...formData,
+        amount: Number(formData.amount)
+      };
+
+      if (person) {
+        dataToSave.id = person._id;
+      }
+
+      await onSave(dataToSave);
+    } catch (error) {
+      setError(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div className="bg-gray-800 rounded-xl p-6 w-full max-w-md border border-gray-700 max-h-screen overflow-y-auto">
+        <h3 className="text-xl font-semibold text-white mb-4">
+          {person ? 'Edit Person' : 'Add New Person'}
+        </h3>
+
+        {error && (
+          <div className="mb-4 p-3 bg-red-900 border border-red-700 rounded-lg flex items-center space-x-2">
+            <AlertCircle className="w-5 h-5 text-red-400" />
+            <span className="text-red-200 text-sm">{error}</span>
+          </div>
+        )}
+        
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Name *</label>
+            <input
+              type="text"
+              value={formData.name}
+              onChange={(e) => setFormData({...formData, name: e.target.value})}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500"
+              required
+              disabled={loading}
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Email *</label>
+            <input
+              type="email"
+              value={formData.email}
+              onChange={(e) => setFormData({...formData, email: e.target.value})}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500"
+              required
+              disabled={loading}
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Phone *</label>
+            <input
+              type="tel"
+              value={formData.phone}
+              onChange={(e) => setFormData({...formData, phone: e.target.value})}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500"
+              placeholder="+91 9876543210"
+              required
+              disabled={loading}
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">RD Amount *</label>
+            <input
+              type="number"
+              value={formData.amount}
+              onChange={(e) => setFormData({...formData, amount: e.target.value})}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500"
+              min="1"
+              required
+              disabled={loading}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Notes</label>
+            <textarea
+              value={formData.notes}
+              onChange={(e) => setFormData({...formData, notes: e.target.value})}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500 h-20 resize-none"
+              placeholder="Optional notes..."
+              disabled={loading}
+            />
+          </div>
+          
+          <div className="flex space-x-3 pt-4">
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-1 bg-purple-600 hover:bg-purple-700 text-white py-2 rounded-lg transition-colors disabled:opacity-50"
+            >
+              {loading ? 'Saving...' : person ? 'Update' : 'Add'}
+            </button>
+            <button
+              type="button"
+              onClick={onCancel}
+              disabled={loading}
+              className="flex-1 bg-gray-600 hover:bg-gray-700 text-white py-2 rounded-lg transition-colors disabled:opacity-50"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+// Monthly Section Component
+const MonthlySection = ({ people, stats, togglePaymentStatus }) => {
+  const currentDate = new Date();
+  const isAfter15th = currentDate.getDate() >= 15;
+  const currentMonth = currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-3xl font-bold text-white">Monthly Tracking</h2>
+        <div className="text-right">
+          <p className="text-gray-400 text-sm">Current Month</p>
+          <p className="text-white font-semibold">{currentMonth}</p>
+        </div>
+      </div>
+      
+      {/* Monthly Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="bg-gray-800 rounded-xl p-4 border border-gray-700">
+          <p className="text-gray-400 text-sm">Total Expected</p>
+          <p className="text-xl font-bold text-white">₹{stats.totalAmount || 0}</p>
+        </div>
+        <div className="bg-gray-800 rounded-xl p-4 border border-gray-700">
+          <p className="text-gray-400 text-sm">Collected</p>
+          <p className="text-xl font-bold text-green-500">₹{stats.collectedAmount || 0}</p>
+        </div>
+        <div className="bg-gray-800 rounded-xl p-4 border border-gray-700">
+          <p className="text-gray-400 text-sm">Pending</p>
+          <p className="text-xl font-bold text-red-500">₹{stats.pendingAmount || 0}</p>
+        </div>
+        <div className="bg-gray-800 rounded-xl p-4 border border-gray-700">
+          <p className="text-gray-400 text-sm">Collection Rate</p>
+          <p className="text-xl font-bold text-purple-500">{stats.collectionRate || 0}%</p>
+        </div>
+      </div>
+
+      {isAfter15th && stats.overdueCount > 0 && (
+        <div className="bg-red-900 border border-red-700 rounded-xl p-4">
+          <div className="flex items-center space-x-3">
+            <AlertCircle className="w-6 h-6 text-red-400" />
+            <div>
+              <p className="text-red-200 font-semibold">RD Collection Due - 15th of the month has passed!</p>
+              <p className="text-red-300">{stats.overdueCount} people have overdue payments</p>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      <div className="grid gap-4">
+        {people.length === 0 ? (
+          <div className="text-center py-8">
+            <Calendar className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+            <p className="text-gray-400 text-lg">No people to track</p>
+          </div>
+        ) : (
+          people.map(person => (
+            <div key={person._id} className={`bg-gray-800 rounded-xl p-6 border ${
+              person.status === 'pending' && isAfter15th ? 'border-red-500' : 'border-gray-700'
+            }`}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-xl font-semibold text-white">{person.name}</h3>
+                  <p className="text-gray-400">Expected: ₹{person.amount}</p>
+                  <p className="text-gray-400">Total Contributed: ₹{person.totalContributed || 0}</p>
+                  <p className="text-gray-400">
+                    Last Payment: {person.lastPayment ? new Date(person.lastPayment).toLocaleDateString() : 'Never'}
+                  </p>
+                  {person.status === 'pending' && isAfter15th && (
+                    <p className="text-red-400 text-sm font-medium">⚠️ Overdue</p>
+                  )}
+                </div>
+                
+                <div className="flex items-center space-x-3">
+                  <span className={`px-4 py-2 rounded-lg font-semibold ${
+                    person.status === 'paid' ? 'bg-green-600 text-white' : 
+                    person.status === 'partial' ? 'bg-yellow-600 text-white' :
+                    'bg-red-600 text-white'
+                  }`}>
+                    {person.status === 'paid' ? 'Paid' : person.status === 'partial' ? 'Partial' : 'Pending'}
+                  </span>
+                  
+                  <button
+                    onClick={() => togglePaymentStatus(person._id)}
+                    className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
+                      person.status === 'paid' 
+                        ? 'bg-red-600 hover:bg-red-700 text-white' 
+                        : 'bg-green-600 hover:bg-green-700 text-white'
+                    }`}
+                  >
+                    Mark as {person.status === 'paid' ? 'Pending' : 'Paid'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+};
+
+// Settings Section Component
+const SettingsSection = ({ user }) => {
+  return (
+    <div className="space-y-6">
+      <h2 className="text-3xl font-bold text-white">Settings</h2>
+      
+      <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+        <h3 className="text-xl font-semibold text-white mb-4">User Profile</h3>
+        <div className="space-y-3">
+          <div>
+            <label className="text-sm text-gray-400">Name</label>
+            <p className="text-white">{user?.name}</p>
+          </div>
+          <div>
+            <label className="text-sm text-gray-400">Email</label>
+            <p className="text-white">{user?.email}</p>
+          </div>
+          <div>
+            <label className="text-sm text-gray-400">Last Login</label>
+            <p className="text-white">
+              {user?.lastLogin ? new Date(user.lastLogin).toLocaleString() : 'N/A'}
+            </p>
+          </div>
+          <div>
+            <label className="text-sm text-gray-400">Member Since</label>
+            <p className="text-white">
+              {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+        <h3 className="text-xl font-semibold text-white mb-4">Application Information</h3>
+        <div className="space-y-2 text-gray-400">
+          <p>RD Tracker helps you manage recurring deposits efficiently.</p>
+          <p>Track payments, manage contacts, and stay on top of collection schedules.</p>
+          <p className="text-sm text-gray-500 mt-4">Version 1.0.0</p>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export default RDTrackerApp;
