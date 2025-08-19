@@ -188,11 +188,6 @@ router.put('/:id', [
     .trim()
     .isLength({ min: 2, max: 100 })
     .withMessage('Name must be between 2 and 100 characters'),
-  body('email')
-    .optional()
-    .isEmail()
-    .normalizeEmail()
-    .withMessage('Please enter a valid email'),
   body('phone')
     .optional()
     .matches(/^[\+]?[1-9][\d]{0,15}$/)
@@ -217,9 +212,14 @@ router.put('/:id', [
       });
     }
 
-    const { name, email, phone, amount, notes } = req.body;
+    let { name, email, phone, amount, notes } = req.body;
     const userId = req.user.id;
     const personId = req.params.id;
+
+    // If email not provided, set default "-"
+    if (!email || email.trim() === "") {
+      email = "-";
+    }
 
     // Check if person exists
     const person = await Person.findOne({
@@ -234,18 +234,18 @@ router.put('/:id', [
       });
     }
 
-    // Check if email is already taken by another person
-    if (email && email !== person.email) {
+    // Check if phone is already taken by another person
+    if (phone && phone !== person.phone) {
       const existingPerson = await Person.findOne({
         userId,
-        email,
+        phone,
         isActive: true,
         _id: { $ne: personId }
       });
 
       if (existingPerson) {
         return res.status(400).json({
-          message: 'Email is already taken by another person'
+          message: 'Phone is already taken by another person'
         });
       }
     }
@@ -281,6 +281,7 @@ router.put('/:id', [
     });
   }
 });
+
 
 // @route   DELETE /api/people/:id
 // @desc    Delete person (soft delete)
