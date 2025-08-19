@@ -5,21 +5,22 @@ import PeopleSection from './components/PeopleSection';
 import MonthlySection from './components/MonthlySection';
 import HomeSection from './components/HomeSection';
 import SettingsSection from './components/SettingsSection';
-import { 
-  Users, 
-  Home, 
-  Calendar, 
-  Settings, 
+import {
+  Users,
+  Home,
+  Calendar,
+  Settings,
   X,
   LogOut,
   User,
   Mail,
-  AlertCircle
+  AlertCircle,
+  // Contact
 } from 'lucide-react';
 
-// // API Configuration TESTING
+// API Configuration TESTING
 // const API_BASE_URL_DEV = process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000';
-// const API_BASE_URL= API_BASE_URL_DEV+ '/api';
+// const API_BASE_URL = API_BASE_URL_DEV + '/api';
 
 // production URL
 const API_BASE_URL  = process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000';
@@ -34,10 +35,10 @@ const api = {
         token: token,
         expiresAt: expirationTime
       };
-      
+
       // Check if it's a mobile device
       const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-      
+
       if (isMobile) {
         // Use localStorage for mobile devices to persist for 45 days
         localStorage.setItem('authData', JSON.stringify(authData));
@@ -54,12 +55,12 @@ const api = {
   // Get auth token and check expiration
   getAuthToken: () => {
     let authDataStr = localStorage.getItem('authData') || sessionStorage.getItem('authData');
-    
+
     if (!authDataStr) return null;
-    
+
     try {
       const authData = JSON.parse(authDataStr);
-      
+
       // Check if token has expired
       if (Date.now() > authData.expiresAt) {
         // Token expired, remove it
@@ -67,7 +68,7 @@ const api = {
         sessionStorage.removeItem('authData');
         return null;
       }
-      
+
       return authData.token;
     } catch (error) {
       // Invalid auth data, remove it
@@ -99,7 +100,7 @@ const api = {
       if (!response.ok) {
         throw new Error(data.message || 'API request failed');
       }
-
+      console.log('API Response:', data);
       return data;
     } catch (error) {
       console.error('API Error:', error);
@@ -215,7 +216,7 @@ const RDTrackerApp = () => {
         api.people.getAll(),
         api.dashboard.getStats(),
       ]);
-      
+
       setPeople(peopleResponse.data);
       setDashboardStats(statsResponse.data);
     } catch (error) {
@@ -327,7 +328,7 @@ const RDTrackerApp = () => {
     try {
       const person = people.find(p => p._id === id);
       const newStatus = person.status === 'paid' ? 'pending' : 'paid';
-      
+
       const response = await api.people.updateStatus(id, newStatus);
       setPeople(people.map(p => p._id === id ? response.data : p));
       await loadDashboardStats(); // Refresh stats
@@ -398,7 +399,7 @@ const RDTrackerApp = () => {
                   <input
                     type="email"
                     value={loginForm.email}
-                    onChange={(e) => setLoginForm({...loginForm, email: e.target.value})}
+                    onChange={(e) => setLoginForm({ ...loginForm, email: e.target.value })}
                     className="w-full pl-10 pr-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                     placeholder="Enter your email"
                     required
@@ -412,7 +413,7 @@ const RDTrackerApp = () => {
                 <input
                   type="password"
                   value={loginForm.password}
-                  onChange={(e) => setLoginForm({...loginForm, password: e.target.value})}
+                  onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
                   className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   placeholder="Enter your password"
                   required
@@ -451,7 +452,7 @@ const RDTrackerApp = () => {
                   <input
                     type="text"
                     value={signupForm.name}
-                    onChange={(e) => setSignupForm({...signupForm, name: e.target.value})}
+                    onChange={(e) => setSignupForm({ ...signupForm, name: e.target.value })}
                     className="w-full pl-10 pr-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                     placeholder="Enter your name"
                     required
@@ -467,7 +468,7 @@ const RDTrackerApp = () => {
                   <input
                     type="email"
                     value={signupForm.email}
-                    onChange={(e) => setSignupForm({...signupForm, email: e.target.value})}
+                    onChange={(e) => setSignupForm({ ...signupForm, email: e.target.value })}
                     className="w-full pl-10 pr-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                     placeholder="Enter your email"
                     required
@@ -481,7 +482,7 @@ const RDTrackerApp = () => {
                 <input
                   type="password"
                   value={signupForm.password}
-                  onChange={(e) => setSignupForm({...signupForm, password: e.target.value})}
+                  onChange={(e) => setSignupForm({ ...signupForm, password: e.target.value })}
                   className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   placeholder="Enter your password"
                   required
@@ -540,13 +541,21 @@ const RDTrackerApp = () => {
               {user && <p className="text-gray-400 text-sm">Welcome, {user.name}</p>}
             </div>
           </div>
-          <button
-            onClick={handleLogout}
-            className="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors"
-          >
-            <LogOut className="w-5 h-5" />
-            <span className="hidden sm:inline">Logout</span>
-          </button>
+          <div className="flex items-center space-x-4">
+            {/* <button className="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors px-2">
+    <Contact className="w-8 h-8 " />
+    {/* <span className="hidden sm:inline">PhoneBook</span> */}
+            {/* </button> */} */
+
+            <button
+              onClick={handleLogout}
+              className="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors"
+            >
+              <LogOut className="w-5 h-5" />
+              <span className="hidden sm:inline">Logout</span>
+            </button>
+          </div>
+
         </div>
       </nav>
 
@@ -582,11 +591,10 @@ const RDTrackerApp = () => {
                 <button
                   key={id}
                   onClick={() => setCurrentSection(id)}
-                  className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all ${
-                    currentSection === id
-                      ? 'bg-purple-600 text-white'
-                      : 'text-gray-300 hover:bg-gray-700 hover:text-white'
-                  }`}
+                  className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all ${currentSection === id
+                    ? 'bg-purple-600 text-white'
+                    : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+                    }`}
                 >
                   <Icon className="w-5 h-5" />
                   <span>{label}</span>
@@ -613,16 +621,16 @@ const RDTrackerApp = () => {
           )}
 
           {!loading && currentSection === 'home' && (
-            <HomeSection 
+            <HomeSection
               stats={dashboardStats}
-              people={people} 
+              people={people}
               makeCall={makeCall}
               togglePaymentStatus={togglePaymentStatus}
             />
           )}
-          
+
           {!loading && currentSection === 'people' && (
-            <PeopleSection 
+            <PeopleSection
               people={sortedPeople}
               searchTerm={searchTerm}
               setSearchTerm={setSearchTerm}
@@ -638,15 +646,15 @@ const RDTrackerApp = () => {
               loading={loading}
             />
           )}
-          
+
           {!loading && currentSection === 'monthly' && (
-            <MonthlySection 
-              people={people} 
+            <MonthlySection
+              people={people}
               stats={dashboardStats}
-              togglePaymentStatus={togglePaymentStatus} 
+              togglePaymentStatus={togglePaymentStatus}
             />
           )}
-          
+
           {!loading && currentSection === 'settings' && <SettingsSection user={user} />}
         </div>
       </div>

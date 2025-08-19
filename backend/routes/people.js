@@ -8,280 +8,249 @@ const router = express.Router();
 // All routes require authentication
 router.use(authMiddleware);
 
-// @route   GET /api/people
-// @desc    Get all people for authenticated user
-// @access  Private
-router.get('/', [
-  query('search').optional().trim(),
-  query('status').optional().isIn(['paid', 'pending', 'partial']),
-  query('month').optional().matches(/^\d{4}-\d{2}$/)
-], async (req, res) => {
-  try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        message: 'Invalid query parameters',
-        errors: errors.array()
-      });
+/**
+ * @route   GET /api/people
+ * @desc    Get all people for authenticated user
+ * @access  Private
+ */
+router.get(
+  '/',
+  [
+    query('search').optional().trim(),
+    query('status').optional().isIn(['paid', 'pending', 'partial']),
+    query('month').optional().matches(/^\d{4}-\d{2}$/),
+  ],
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({
+          message: 'Invalid query parameters',
+          errors: errors.array(),
+        });
+      }
+
+      const { search, status, month } = req.query;
+      const userId = req.user.id;
+
+      // Build query
+      let queryObj = { userId, isActive: true };
+
+      if (status) queryObj.status = status;
+      if (month) queryObj.currentMonth = month;
+
+      // Fetch people
+      let people = await Person.find(queryObj).sort({ updatedAt: -1 });
+
+      // Apply search filter
+      if (search) {
+        const searchRegex = new RegExp(search, 'i');
+        people = people.filter(
+          (person) =>
+            searchRegex.test(person.name) ||
+            searchRegex.test(person.email) ||
+            searchRegex.test(person.phone)
+        );
+      }
+
+      res.json({ success: true, count: people.length, data: people });
+    } catch (error) {
+      console.error('Get people error:', error);
+      res.status(500).json({ message: 'Server error while fetching people' });
     }
-
-    const { search, status, month } = req.query;
-    const userId = req.user.id;
-
-    // Build query
-    let query = { userId, isActive: true };
-
-    // Add status filter
-    if (status) {
-      query.status = status;
-    }
-
-    // Add month filter
-    if (month) {
-      query.currentMonth = month;
-    }
-
-    // Execute query
-    let people = await Person.find(query).sort({ updatedAt: -1 });
-
-    // Apply search filter if provided
-    if (search) {
-      const searchRegex = new RegExp(search, 'i');
-      people = people.filter(person => 
-        searchRegex.test(person.name) || 
-        searchRegex.test(person.email) ||
-        searchRegex.test(person.phone)
-      );
-    }
-
-    res.json({
-      success: true,
-      count: people.length,
-      data: people
-    });
-
-  } catch (error) {
-    console.error('Get people error:', error);
-    res.status(500).json({
-      message: 'Server error while fetching people'
-    });
   }
-});
+);
 
-// @route   GET /api/people/:id
-// @desc    Get single person by ID
-// @access  Private
+/**
+ * @route   GET /api/people/:id
+ * @desc    Get single person by ID
+ * @access  Private
+ */
 router.get('/:id', async (req, res) => {
   try {
     const person = await Person.findOne({
       _id: req.params.id,
       userId: req.user.id,
-      isActive: true
+      isActive: true,
     });
 
     if (!person) {
-      return res.status(404).json({
-        message: 'Person not found'
-      });
+      return res.status(404).json({ message: 'Person not found' });
     }
 
-    res.json({
-      success: true,
-      data: person
-    });
-
+    res.json({ success: true, data: person });
   } catch (error) {
     console.error('Get person error:', error);
     if (error.name === 'CastError') {
-      return res.status(400).json({
-        message: 'Invalid person ID'
-      });
+      return res.status(400).json({ message: 'Invalid person ID' });
     }
-    res.status(500).json({
-      message: 'Server error while fetching person'
-    });
+    res.status(500).json({ message: 'Server error while fetching person' });
   }
 });
 
-// @route   POST /api/people
-// @desc    Create new person
-// @access  Private
-router.post('/', [
-  body('name')
-    .trim()
-    .isLength({ min: 2, max: 100 })
-    .withMessage('Name must be between 2 and 100 characters'),
-  body('email')
-    .isEmail()
-    .normalizeEmail()
-    .withMessage('Please enter a valid email'),
-  body('phone')
-    .matches(/^[\+]?[1-9][\d]{0,15}$/)
-    .withMessage('Please enter a valid phone number'),
-  body('amount')
-    .isNumeric()
-    .isFloat({ min: 1 })
-    .withMessage('Amount must be a positive number'),
-  body('notes')
-    .optional()
-    .trim()
-    .isLength({ max: 500 })
-    .withMessage('Notes cannot exceed 500 characters')
-], async (req, res) => {
-  try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        message: 'Validation failed',
-        errors: errors.array()
-      });
-    }
-
-    const { name, email, phone, amount, notes } = req.body;
-    const userId = req.user.id;
-
-    // Check if person with same email already exists for this user
-    const existingPerson = await Person.findOne({
-      userId,
-      email,
-      isActive: true
-    });
-
-    if (existingPerson) {
-      return res.status(400).json({
-        message: 'Person with this email already exists'
-      });
-    }
-
-    // Create new person
-    const person = new Person({
-      name,
-      email,
-      phone,
-      amount: parseFloat(amount),
-      notes,
-      userId
-    });
-
-    await person.save();
-
-    res.status(201).json({
-      success: true,
-      message: 'Person created successfully',
-      data: person
-    });
-
-  } catch (error) {
-    console.error('Create person error:', error);
-    res.status(500).json({
-      message: 'Server error while creating person'
-    });
-  }
-});
-
-// @route   PUT /api/people/:id
-// @desc    Update person
-// @access  Private
-router.put('/:id', [
-  body('name')
-    .optional()
-    .trim()
-    .isLength({ min: 2, max: 100 })
-    .withMessage('Name must be between 2 and 100 characters'),
-  body('phone')
-    .optional()
-    .matches(/^[\+]?[1-9][\d]{0,15}$/)
-    .withMessage('Please enter a valid phone number'),
-  body('amount')
-    .optional()
-    .isNumeric()
-    .isFloat({ min: 1 })
-    .withMessage('Amount must be a positive number'),
-  body('notes')
-    .optional()
-    .trim()
-    .isLength({ max: 500 })
-    .withMessage('Notes cannot exceed 500 characters')
-], async (req, res) => {
-  try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        message: 'Validation failed',
-        errors: errors.array()
-      });
-    }
-
-    let { name, email, phone, amount, notes } = req.body;
-    const userId = req.user.id;
-    const personId = req.params.id;
-
-    // If email not provided, set default "-"
-    if (!email || email.trim() === "") {
-      email = "-";
-    }
-
-    // Check if person exists
-    const person = await Person.findOne({
-      _id: personId,
-      userId,
-      isActive: true
-    });
-
-    if (!person) {
-      return res.status(404).json({
-        message: 'Person not found'
-      });
-    }
-
-    // Check if phone is already taken by another person
-    if (phone && phone !== person.phone) {
-      const existingPerson = await Person.findOne({
-        userId,
-        phone,
-        isActive: true,
-        _id: { $ne: personId }
-      });
-
-      if (existingPerson) {
+/**
+ * @route   POST /api/people
+ * @desc    Create new person
+ * @access  Private
+ */
+router.post(
+  '/',
+  [
+    body('name')
+      .trim()
+      .isLength({ min: 2, max: 100 })
+      .withMessage('Name must be between 2 and 100 characters'),
+    body('email').isEmail().normalizeEmail().withMessage('Please enter a valid email'),
+    body('phone')
+      .matches(/^[\+]?[1-9][\d]{0,15}$/)
+      .withMessage('Please enter a valid phone number'),
+    body('amount')
+      .isNumeric()
+      .isFloat({ min: 1 })
+      .withMessage('Amount must be a positive number'),
+    body('notes')
+      .optional()
+      .trim()
+      .isLength({ max: 500 })
+      .withMessage('Notes cannot exceed 500 characters'),
+  ],
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
         return res.status(400).json({
-          message: 'Phone is already taken by another person'
+          message: 'Validation failed',
+          errors: errors.array(),
         });
       }
-    }
 
-    // Update person
-    const updatedPerson = await Person.findByIdAndUpdate(
-      personId,
-      {
-        ...(name && { name }),
-        ...(email && { email }),
-        ...(phone && { phone }),
-        ...(amount && { amount: parseFloat(amount) }),
-        ...(notes !== undefined && { notes })
-      },
-      { new: true, runValidators: true }
-    );
+      const { name, email, phone, amount, notes } = req.body;
+      const userId = req.user.id;
 
-    res.json({
-      success: true,
-      message: 'Person updated successfully',
-      data: updatedPerson
-    });
+      // Check for duplicate email
+      const existingPerson = await Person.findOne({ userId, email, isActive: true });
+      if (existingPerson) {
+        return res.status(400).json({ message: 'Person with this email already exists' });
+      }
 
-  } catch (error) {
-    console.error('Update person error:', error);
-    if (error.name === 'CastError') {
-      return res.status(400).json({
-        message: 'Invalid person ID'
+      // Create new person
+      const person = new Person({
+        name,
+        email,
+        phone,
+        amount: parseFloat(amount),
+        notes,
+        userId,
       });
-    }
-    res.status(500).json({
-      message: 'Server error while updating person'
-    });
-  }
-});
 
+      await person.save();
+      res.status(201).json({
+        success: true,
+        message: 'Person created successfully',
+        data: person,
+      });
+    } catch (error) {
+      console.error('Create person error:', error);
+      res.status(500).json({ message: 'Server error while creating person' });
+    }
+  }
+);
+
+
+/**
+ * @route   PUT /api/people/:id
+ * @desc    Update person
+ * @access  Private
+ */
+router.put(
+  '/:id',
+  [
+    body('name')
+      .optional()
+      .trim()
+      .isLength({ min: 2, max: 100 })
+      .withMessage('Name must be between 2 and 100 characters'),
+    body('email')
+      .optional()
+      .isEmail()
+      .normalizeEmail()
+      .withMessage('Please enter a valid email'),
+    body('phone')
+      .optional()
+      .matches(/^[\+]?[1-9][\d]{0,15}$/)
+      .withMessage('Please enter a valid phone number'),
+    body('amount')
+      .optional()
+      .isNumeric()
+      .isFloat({ min: 1 })
+      .withMessage('Amount must be a positive number'),
+    body('notes')
+      .optional()
+      .trim()
+      .isLength({ max: 500 })
+      .withMessage('Notes cannot exceed 500 characters'),
+  ],
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({
+          message: 'Validation failed',
+          errors: errors.array(),
+        });
+      }
+
+      const { name, email, phone, amount, notes } = req.body;
+      const userId = req.user.id;
+      const personId = req.params.id;
+
+      // Check if person exists
+      const person = await Person.findOne({ _id: personId, userId, isActive: true });
+      if (!person) {
+        return res.status(404).json({ message: 'Person not found' });
+      }
+
+      // Ensure email is unique if changed
+      if (email && email !== person.email) {
+        const existingPerson = await Person.findOne({
+          userId,
+          email,
+          isActive: true,
+          _id: { $ne: personId },
+        });
+
+        if (existingPerson) {
+          return res.status(400).json({ message: 'Email is already taken by another person' });
+        }
+      }
+
+      // Update person
+      const updatedPerson = await Person.findByIdAndUpdate(
+        personId,
+        {
+          ...(name && { name }),
+          ...(email && { email }),
+          ...(phone && { phone }),
+          ...(amount && { amount: parseFloat(amount) }),
+          ...(notes !== undefined && { notes }),
+        },
+        { new: true, runValidators: true }
+      );
+
+      res.json({
+        success: true,
+        message: 'Person updated successfully',
+        data: updatedPerson,
+      });
+    } catch (error) {
+      console.error('Update person error:', error);
+      if (error.name === 'CastError') {
+        return res.status(400).json({ message: 'Invalid person ID' });
+      }
+      res.status(500).json({ message: 'Server error while updating person' });
+    }
+  }
+);
 
 // @route   DELETE /api/people/:id
 // @desc    Delete person (soft delete)
