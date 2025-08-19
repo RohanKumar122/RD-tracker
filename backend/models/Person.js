@@ -33,7 +33,7 @@ const personSchema = new mongoose.Schema({
   },
   email: {
     type: String,
-    required: [true, 'Email is required'],
+    required: false, // Email is optional for now
     lowercase: true,
     trim: true,
     match: [
